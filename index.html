@@ -166,10 +166,8 @@
         
         // --- Initialization ---
         window.onload = function() {
-            // Initialize Google API client library loader
+            // Initialize Google API client library loader and the GIS client
             gapi.load('client', initializeGapiClient);
-            
-            // Initialize Google Sign-In client
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: GAPI_SCOPES,
@@ -180,14 +178,9 @@
         };
 
         async function initializeGapiClient() {
-            // CORRECTED: The GAPI client is initialized WITHOUT an API key.
-            // All subsequent calls will use the OAuth token provided by the user's sign-in.
-            try {
-                await gapi.client.init({});
-            } catch (error) {
-                console.error("Error initializing GAPI client:", error);
-                alert("Fatal Error: Could not initialize the Google API client. The tool cannot function.");
-            }
+            // CORRECTED: The GAPI client is now initialized without any API key.
+            // This prevents conflicts with the OAuth flow for GSC and Sheets.
+            await gapi.client.init({});
         }
 
         async function handleAuthResponse(response) {
@@ -198,8 +191,6 @@
             }
             try {
                 gapi.client.setToken(response);
-
-                // Load the specific API services we need *after* setting the token.
                 await gapi.client.load('https://searchconsole.googleapis.com/$discovery/rest?version=v1');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
