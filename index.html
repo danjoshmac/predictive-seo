@@ -180,8 +180,8 @@
         };
 
         async function initializeGapiClient() {
-            // This initializes the GAPI client library, but not the specific API services yet.
-            // That will happen after authentication.
+            // This function is a placeholder. The actual API client loading
+            // is now handled *after* successful authentication in handleAuthResponse.
         }
 
         async function handleAuthResponse(response) {
@@ -190,10 +190,10 @@
                 return;
             }
             try {
-                // Explicitly set the access token for all future GAPI calls
+                // Set the access token for all future GAPI calls. This is a crucial step.
                 gapi.client.setToken(response);
 
-                // Now, initialize the specific API services we need
+                // Load the specific API services we need *after* setting the token.
                 await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/webmasters/v3/rest');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
@@ -213,15 +213,22 @@
                 const response = await gapi.client.webmasters.sites.list({});
                 const sites = response.result.siteEntry;
                 if (!sites || sites.length === 0) {
-                    throw new Error("No GSC properties found in this account.");
+                    throw new Error("No GSC properties found in this account. Please ensure the account you signed in with has access to GSC properties.");
                 }
                 gscUrlSelect.innerHTML = sites.map(site => `<option value="${site.siteUrl}">${site.siteUrl}</option>`).join('');
                 gscLoader.classList.add('hidden');
                 gscConfigInputs.classList.remove('hidden');
             } catch (error) {
-                console.error("Error fetching GSC properties:", error);
+                console.error("Detailed error fetching GSC properties:", JSON.stringify(error, null, 2));
+                let detailedMessage = "Could not fetch GSC properties.";
+                if (error.result && error.result.error) {
+                    detailedMessage += `\n\nGoogle API Error: ${error.result.error.message} (Code: ${error.result.error.code})`;
+                } else {
+                    detailedMessage += `\n\n${error.message || 'An unknown error occurred.'}`;
+                }
+                alert(detailedMessage);
+                
                 gscLoader.classList.add('hidden');
-                alert("Could not fetch GSC properties. Please ensure you have granted permission and have properties in your account.");
                 authSection.classList.remove('hidden');
                 configSection.classList.add('hidden');
             }
@@ -504,4 +511,4 @@
 
     </script>
 </body>
-</html>
+</ht
