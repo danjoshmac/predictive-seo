@@ -54,15 +54,6 @@
             <p class="text-gray-400 mt-3">Connect your accounts to uncover emerging trends and content opportunities.</p>
         </header>
 
-        <!-- URL Helper Box -->
-        <div id="url-helper" class="mb-8 p-4 bg-yellow-900/20 border border-yellow-500 rounded-lg text-center">
-            <p class="font-semibold text-yellow-300">Action Required: Fix Sign-In Error</p>
-            <p class="text-sm text-yellow-400 mt-2">Copy the URL below and add it to **both** "Authorised JavaScript origins" and "Authorised redirect URIs" in your Google Cloud Client ID settings.</p>
-            <div class="mt-3 p-2 bg-gray-900 rounded font-mono text-xs text-yellow-200 break-all" id="origin-url-display">
-                Loading URL...
-            </div>
-        </div>
-
         <!-- Auth Section -->
         <div id="auth-section" class="text-center">
              <button id="auth-button" class="bg-white text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md flex items-center justify-center mx-auto hover:bg-gray-200 transition">
@@ -175,12 +166,6 @@
         
         // --- Initialization ---
         window.onload = function() {
-            // Display the origin URL for the user to help with OAuth setup
-            const originUrlDisplay = document.getElementById('origin-url-display');
-            if (originUrlDisplay) {
-                originUrlDisplay.textContent = window.location.origin;
-            }
-
             // Initialize Google API client
             gapi.load('client', initializeGapiClient);
             
@@ -209,7 +194,6 @@
                 alert('Authentication failed. Please ensure you have added the correct URL to your Google Cloud Client ID settings.');
                 return;
             }
-            document.getElementById('url-helper').style.display = 'none'; // Hide helper after successful auth
             authSection.classList.add('hidden');
             configSection.classList.remove('hidden');
             gscLoader.classList.remove('hidden');
