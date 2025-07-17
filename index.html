@@ -180,12 +180,10 @@
         };
 
         async function initializeGapiClient() {
-            // Initializes the GAPI client with an API key.
-            // This is a prerequisite for loading discovery docs.
+            // CORRECTED: This initialization is now only for the core client library.
+            // The API key is not needed here because all subsequent calls are authenticated via OAuth.
             try {
-                await gapi.client.init({
-                    apiKey: GEMINI_API_KEY,
-                });
+                await gapi.client.init({});
             } catch (error) {
                 console.error("Error initializing GAPI client:", error);
                 alert("Fatal Error: Could not initialize the Google API client. The tool cannot function.");
@@ -527,4 +525,4 @@
 
     </script>
 </body>
-</html>
+</ht
