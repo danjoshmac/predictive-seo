@@ -193,19 +193,15 @@
         }
 
         async function handleAuthResponse(response) {
-            // This is a new debugging line to see if the callback is triggered.
             console.log("Authentication response received:", response);
-            
             if (response.error) {
                 alert('Authentication failed: ' + response.error);
                 return;
             }
             try {
-                // Set the access token for all future GAPI calls.
                 gapi.client.setToken(response);
 
-                // Load the specific API services we need *after* setting the token.
-                await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/webmasters/v3/rest');
+                await gapi.client.load('https://searchconsole.googleapis.com/$discovery/rest?version=v1');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
                 authSection.classList.add('hidden');
@@ -215,15 +211,20 @@
 
             } catch (error) {
                  console.error("Error loading GAPI client libraries:", JSON.stringify(error, null, 2));
-                 // Improved error reporting to show the detailed message from Google.
-                 const detailedMessage = `Error loading Google API services. This usually means the API is not enabled in your Google Cloud project.\n\nDetailed Error: ${JSON.stringify(error.result.error, null, 2)}`;
+                 // CORRECTED: More robust error handling to display detailed messages.
+                 let detailedMessage = "Error loading Google API services. This usually means the required APIs are not enabled in your Google Cloud project.";
+                 if (error && error.result && error.result.error) {
+                    detailedMessage += `\n\nDetails: ${error.result.error.message}`;
+                 } else if (error && error.message) {
+                    detailedMessage += `\n\nDetails: ${error.message}`;
+                 }
                  alert(detailedMessage);
             }
         }
 
         async function fetchGscProperties() {
             try {
-                const response = await gapi.client.webmasters.sites.list({});
+                const response = await gapi.client.searchconsole.sites.list({});
                 const sites = response.result.siteEntry;
                 if (!sites || sites.length === 0) {
                     throw new Error("No GSC properties found in this account. Please ensure the account you signed in with has access to GSC properties.");
@@ -311,7 +312,7 @@
         }
 
         async function fetchSingleGscPeriod(siteUrl, startDate, endDate) {
-             const response = await gapi.client.webmasters.searchanalytics.query({
+             const response = await gapi.client.searchconsole.searchanalytics.query({
                 siteUrl: siteUrl,
                 resource: {
                     startDate: startDate,
