@@ -193,6 +193,9 @@
         }
 
         async function handleAuthResponse(response) {
+            // This is a new debugging line to see if the callback is triggered.
+            console.log("Authentication response received:", response);
+            
             if (response.error) {
                 alert('Authentication failed: ' + response.error);
                 return;
