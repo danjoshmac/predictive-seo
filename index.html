@@ -212,10 +212,8 @@
 
             } catch (error) {
                  console.error("Error loading GAPI client libraries:", JSON.stringify(error, null, 2));
-                 let detailedMessage = "Error loading Google API services. Please ensure the necessary APIs (Search Console, Sheets) are enabled in your Google Cloud project.";
-                 if (error.result && error.result.error) {
-                    detailedMessage += `\n\nDetails: ${error.result.error.message}`;
-                 }
+                 // Improved error reporting to show the detailed message from Google.
+                 const detailedMessage = `Error loading Google API services. This usually means the API is not enabled in your Google Cloud project.\n\nDetailed Error: ${JSON.stringify(error.result.error, null, 2)}`;
                  alert(detailedMessage);
             }
         }
