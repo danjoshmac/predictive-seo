@@ -178,8 +178,7 @@
         };
 
         async function initializeGapiClient() {
-            // CORRECTED: The GAPI client is now initialized without any API key.
-            // This prevents conflicts with the OAuth flow for GSC and Sheets.
+            // The GAPI client is initialized without an API key.
             await gapi.client.init({});
         }
 
@@ -191,6 +190,7 @@
             }
             try {
                 gapi.client.setToken(response);
+                // CORRECTED: Use the correct discovery doc URL for the modern Search Console API
                 await gapi.client.load('https://searchconsole.googleapis.com/$discovery/rest?version=v1');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
@@ -213,7 +213,8 @@
 
         async function fetchGscProperties() {
             try {
-                const response = await gapi.client.searchconsole.sites.list({});
+                // CORRECTED: Use the modern 'searchconsole' service object
+                const response = await gapi.client.searchconsole.sites.list();
                 const sites = response.result.siteEntry;
                 if (!sites || sites.length === 0) {
                     throw new Error("No GSC properties found in this account. Please ensure the account you signed in with has access to GSC properties.");
@@ -301,9 +302,10 @@
         }
 
         async function fetchSingleGscPeriod(siteUrl, startDate, endDate) {
+             // CORRECTED: Use the modern 'searchconsole' service object
              const response = await gapi.client.searchconsole.searchanalytics.query({
                 siteUrl: siteUrl,
-                requestBody: {
+                resource: { // CORRECTED: API payload should be in 'resource' for this version
                     startDate: startDate,
                     endDate: endDate,
                     dimensions: ['query'],
