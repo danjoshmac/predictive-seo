@@ -180,8 +180,8 @@
         };
 
         async function initializeGapiClient() {
-            // CORRECTED: This initialization is now only for the core client library.
-            // The API key is not needed here because all subsequent calls are authenticated via OAuth.
+            // CORRECTED: The GAPI client is initialized WITHOUT an API key.
+            // All subsequent calls will use the OAuth token provided by the user's sign-in.
             try {
                 await gapi.client.init({});
             } catch (error) {
@@ -199,7 +199,6 @@
             try {
                 gapi.client.setToken(response);
 
-                // CORRECTED: Load the modern Search Console and Sheets APIs discovery documents.
                 await gapi.client.load('https://searchconsole.googleapis.com/$discovery/rest?version=v1');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
@@ -222,7 +221,6 @@
 
         async function fetchGscProperties() {
             try {
-                // CORRECTED: Use the modern 'searchconsole' service object
                 const response = await gapi.client.searchconsole.sites.list({});
                 const sites = response.result.siteEntry;
                 if (!sites || sites.length === 0) {
@@ -311,10 +309,9 @@
         }
 
         async function fetchSingleGscPeriod(siteUrl, startDate, endDate) {
-             // CORRECTED: Use the modern 'searchconsole' service object
              const response = await gapi.client.searchconsole.searchanalytics.query({
                 siteUrl: siteUrl,
-                requestBody: { // CORRECTED: API payload should be in 'requestBody'
+                requestBody: {
                     startDate: startDate,
                     endDate: endDate,
                     dimensions: ['query'],
@@ -525,4 +522,4 @@
 
     </script>
 </body>
-</ht
+</html>
