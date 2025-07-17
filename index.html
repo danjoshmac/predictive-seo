@@ -166,7 +166,7 @@
         
         // --- Initialization ---
         window.onload = function() {
-            // Initialize Google API client
+            // Initialize Google API client library loader
             gapi.load('client', initializeGapiClient);
             
             // Initialize Google Sign-In client
@@ -180,8 +180,16 @@
         };
 
         async function initializeGapiClient() {
-            // This function is a placeholder. The actual API client loading
-            // is now handled *after* successful authentication in handleAuthResponse.
+            // Initializes the GAPI client with an API key.
+            // This is a prerequisite for loading discovery docs.
+            try {
+                await gapi.client.init({
+                    apiKey: GEMINI_API_KEY,
+                });
+            } catch (error) {
+                console.error("Error initializing GAPI client:", error);
+                alert("Fatal Error: Could not initialize the Google API client. The tool cannot function.");
+            }
         }
 
         async function handleAuthResponse(response) {
@@ -190,7 +198,7 @@
                 return;
             }
             try {
-                // Set the access token for all future GAPI calls. This is a crucial step.
+                // Set the access token for all future GAPI calls.
                 gapi.client.setToken(response);
 
                 // Load the specific API services we need *after* setting the token.
@@ -203,8 +211,12 @@
                 fetchGscProperties();
 
             } catch (error) {
-                 console.error("Error loading GAPI client libraries:", error);
-                 alert("Error loading Google API services. Please try again.");
+                 console.error("Error loading GAPI client libraries:", JSON.stringify(error, null, 2));
+                 let detailedMessage = "Error loading Google API services. Please ensure the necessary APIs (Search Console, Sheets) are enabled in your Google Cloud project.";
+                 if (error.result && error.result.error) {
+                    detailedMessage += `\n\nDetails: ${error.result.error.message}`;
+                 }
+                 alert(detailedMessage);
             }
         }
 
@@ -511,4 +523,4 @@
 
     </script>
 </body>
-</ht
+</html>
