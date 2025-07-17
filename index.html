@@ -201,6 +201,7 @@
             try {
                 gapi.client.setToken(response);
 
+                // CORRECTED: Load the modern Search Console and Sheets APIs discovery documents.
                 await gapi.client.load('https://searchconsole.googleapis.com/$discovery/rest?version=v1');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
@@ -211,7 +212,6 @@
 
             } catch (error) {
                  console.error("Error loading GAPI client libraries:", JSON.stringify(error, null, 2));
-                 // CORRECTED: More robust error handling to display detailed messages.
                  let detailedMessage = "Error loading Google API services. This usually means the required APIs are not enabled in your Google Cloud project.";
                  if (error && error.result && error.result.error) {
                     detailedMessage += `\n\nDetails: ${error.result.error.message}`;
@@ -224,6 +224,7 @@
 
         async function fetchGscProperties() {
             try {
+                // CORRECTED: Use the modern 'searchconsole' service object
                 const response = await gapi.client.searchconsole.sites.list({});
                 const sites = response.result.siteEntry;
                 if (!sites || sites.length === 0) {
@@ -312,9 +313,10 @@
         }
 
         async function fetchSingleGscPeriod(siteUrl, startDate, endDate) {
+             // CORRECTED: Use the modern 'searchconsole' service object
              const response = await gapi.client.searchconsole.searchanalytics.query({
                 siteUrl: siteUrl,
-                resource: {
+                requestBody: { // CORRECTED: API payload should be in 'requestBody'
                     startDate: startDate,
                     endDate: endDate,
                     dimensions: ['query'],
