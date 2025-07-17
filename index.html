@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive SEO Analysis Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .input-field {
+            background-color: #374151;
+            border-color: #4b5563;
+            color: #f3f4f6;
+        }
+        .input-field:focus {
+            background-color: #4b5563;
+            border-color: #3b82f6;
+            ring: #3b82f6;
+        }
+        .accordion-button {
+            transition: background-color 0.2s ease-in-out;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div class="container mx-auto max-w-5xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-bold text-white">Predictive SEO Analysis Tool</h1>
+            <p class="text-gray-400 mt-3">Connect your accounts to uncover emerging trends and content opportunities.</p>
+        </header>
+
+        <!-- URL Helper Box -->
+        <div id="url-helper" class="mb-8 p-4 bg-yellow-900/20 border border-yellow-500 rounded-lg text-center">
+            <p class="font-semibold text-yellow-300">Action Required: Fix Sign-In Error</p>
+            <p class="text-sm text-yellow-400 mt-2">Copy the URL below and add it to **both** "Authorised JavaScript origins" and "Authorised redirect URIs" in your Google Cloud Client ID settings.</p>
+            <div class="mt-3 p-2 bg-gray-900 rounded font-mono text-xs text-yellow-200 break-all" id="origin-url-display">
+                Loading URL...
+            </div>
+        </div>
+
+        <!-- Auth Section -->
+        <div id="auth-section" class="text-center">
+             <button id="auth-button" class="bg-white text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md flex items-center justify-center mx-auto hover:bg-gray-200 transition">
+                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"></path><path fill="#34A853" d="M24 46c5.94 0 10.92-1.96 14.56-5.3l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"></path><path fill="#FBBC05" d="M11.69 28.18c-.45-1.32-.7-2.73-.7-4.18s.25-2.86.7-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"></path><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 12.48l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"></path><path fill="none" d="M2 2h44v44H2z"></path></svg>
+                Sign in with Google
+            </button>
+            <p class="text-xs text-gray-500 mt-3">Required for Google Search Console & Google Sheets access.</p>
+        </div>
+
+        <!-- Configuration Section -->
+        <div id="config-section" class="hidden space-y-8">
+            <!-- GSC Config -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-3">1. Google Search Console</h2>
+                <div id="gsc-loader" class="text-center hidden">
+                    <p class="text-gray-400">Loading your GSC properties...</p>
+                </div>
+                <div id="gsc-config-inputs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="gsc-url-select" class="block text-sm font-medium mb-1">Select Property</label>
+                        <select id="gsc-url-select" class="w-full p-2 rounded input-field"></select>
+                    </div>
+                     <div>
+                        <label for="gsc-emerging-threshold" class="block text-sm font-medium mb-1">'Emerging' Impression Increase Threshold (%)</label>
+                        <input type="number" id="gsc-emerging-threshold" class="w-full p-2 rounded input-field" value="50">
+                    </div>
+                    <div>
+                        <label for="gsc-emerging-min-impressions" class="block text-sm font-medium mb-1">'Emerging' Min Impressions</label>
+                        <input type="number" id="gsc-emerging-min-impressions" class="w-full p-2 rounded input-field" value="100">
+                    </div>
+                    <div>
+                        <label for="gsc-untapped-min-impressions" class="block text-sm font-medium mb-1">'Untapped' Min Impressions</label>
+                        <input type="number" id="gsc-untapped-min-impressions" class="w-full p-2 rounded input-field" value="500">
+                    </div>
+                    <div>
+                        <label for="gsc-untapped-max-ctr" class="block text-sm font-medium mb-1">'Untapped' Max CTR (%)</label>
+                        <input type="number" id="gsc-untapped-max-ctr" class="w-full p-2 rounded input-field" value="1.5">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reddit Config -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-3">2. Reddit</h2>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="reddit-subreddit" class="block text-sm font-medium mb-1">Subreddit</label>
+                        <input type="text" id="reddit-subreddit" class="w-full p-2 rounded input-field" placeholder="b2bmarketing">
+                    </div>
+                    <div>
+                        <label for="reddit-sort" class="block text-sm font-medium mb-1">Sort Type</label>
+                        <select id="reddit-sort" class="w-full p-2 rounded input-field">
+                            <option>Hot</option>
+                            <option>New</option>
+                            <option>Top</option>
+                            <option>Rising</option>
+                            <option>Controversial</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Run Button -->
+            <div class="text-center pt-4">
+                <button id="run-analysis" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-200 ease-in-out">
+                    Run Predictive Analysis
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden mt-12">
+            <div id="loader-container" class="text-center py-10">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-lg text-gray-300">Performing analysis... This may take a moment.</p>
+            </div>
+            <div id="error-container" class="hidden text-center p-6 bg-red-900/20 border border-red-500 rounded-lg">
+                <h3 class="text-xl font-semibold text-red-400">Analysis Failed</h3>
+                <p id="error-message" class="mt-2 text-red-300"></p>
+            </div>
+            <div id="results-content" class="hidden space-y-6">
+                 <!-- AI Insights will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Hardcoded API Keys ---
+        const GEMINI_API_KEY = "AIzaSyBNZRpbEG_cdgKra0ByDVqtCdZro-uTk_M";
+        const GOOGLE_CLIENT_ID = "447933251845-25uu1hu0qmgf8so56o7ne52e4mo23384.apps.googleusercontent.com";
+        const GAPI_SCOPES = "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/spreadsheets";
+
+        // --- Global State ---
+        let tokenClient;
+        let analysisData = {};
+
+        // --- DOM Element References ---
+        const authButton = document.getElementById('auth-button');
+        const authSection = document.getElementById('auth-section');
+        const configSection = document.getElementById('config-section');
+        const gscLoader = document.getElementById('gsc-loader');
+        const gscConfigInputs = document.getElementById('gsc-config-inputs');
+        const gscUrlSelect = document.getElementById('gsc-url-select');
+        const runButton = document.getElementById('run-analysis');
+        const resultsSection = document.getElementById('results-section');
+        const loaderContainer = document.getElementById('loader-container');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        const resultsContent = document.getElementById('results-content');
+        
+        // --- Initialization ---
+        window.onload = function() {
+            // Display the origin URL for the user to help with OAuth setup
+            const originUrlDisplay = document.getElementById('origin-url-display');
+            if (originUrlDisplay) {
+                originUrlDisplay.textContent = window.location.origin;
+            }
+
+            // Initialize Google API client
+            gapi.load('client', initializeGapiClient);
+            
+            // Initialize Google Sign-In client
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GAPI_SCOPES,
+                callback: handleAuthResponse,
+            });
+            authButton.addEventListener('click', () => tokenClient.requestAccessToken());
+            runButton.addEventListener('click', handleAnalysis);
+        };
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: GEMINI_API_KEY, // Use Gemini key for GAPI, though not strictly needed for OAuth calls
+                discoveryDocs: [
+                    "https://www.googleapis.com/discovery/v1/apis/webmasters/v3/rest",
+                    "https://sheets.googleapis.com/$discovery/rest?version=v4"
+                ],
+            });
+        }
+
+        function handleAuthResponse(response) {
+            if (response.error) {
+                alert('Authentication failed. Please ensure you have added the correct URL to your Google Cloud Client ID settings.');
+                return;
+            }
+            document.getElementById('url-helper').style.display = 'none'; // Hide helper after successful auth
+            authSection.classList.add('hidden');
+            configSection.classList.remove('hidden');
+            gscLoader.classList.remove('hidden');
+            fetchGscProperties();
+        }
+
+        async function fetchGscProperties() {
+            try {
+                const response = await gapi.client.webmasters.sites.list({});
+                const sites = response.result.siteEntry;
+                if (!sites || sites.length === 0) {
+                    throw new Error("No GSC properties found in this account.");
+                }
+                gscUrlSelect.innerHTML = sites.map(site => `<option value="${site.siteUrl}">${site.siteUrl}</option>`).join('');
+                gscLoader.classList.add('hidden');
+                gscConfigInputs.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error fetching GSC properties:", error);
+                gscLoader.classList.add('hidden');
+                alert("Could not fetch GSC properties. Please ensure you have granted permission and have properties in your account.");
+                authSection.classList.remove('hidden');
+                configSection.classList.add('hidden');
+            }
+        }
+
+        async function handleAnalysis() {
+            const inputs = {
+                gscUrl: gscUrlSelect.value,
+                gscEmergingThreshold: document.getElementById('gsc-emerging-threshold').value || '50',
+                gscEmergingMinImpressions: document.getElementById('gsc-emerging-min-impressions').value || '100',
+                gscUntappedMinImpressions: document.getElementById('gsc-untapped-min-impressions').value || '500',
+                gscUntappedMaxCtr: document.getElementById('gsc-untapped-max-ctr').value || '1.5',
+                redditSubreddit: document.getElementById('reddit-subreddit').value,
+                redditSort: document.getElementById('reddit-sort').value,
+            };
+
+            if (!inputs.gscUrl || !inputs.redditSubreddit) {
+                alert("Please select a GSC property and enter a Subreddit.");
+                return;
+            }
+
+            configSection.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            loaderContainer.classList.remove('hidden');
+            errorContainer.classList.add('hidden');
+            resultsContent.classList.add('hidden');
+            resultsContent.innerHTML = '';
+
+            try {
+                const gscData = await fetchAllGscData(inputs.gscUrl);
+                const analysisResult = await performAnalysisWithGemini(inputs, gscData);
+                
+                analysisData = analysisResult; // Store data for sheet export
+
+                renderResults(analysisResult);
+                loaderContainer.classList.add('hidden');
+                resultsContent.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Analysis failed:", error);
+                loaderContainer.classList.add('hidden');
+                errorMessage.textContent = error.message || "An unknown error occurred. Check the console for details.";
+                errorContainer.classList.remove('hidden');
+            }
+        }
+
+        async function fetchAllGscData(siteUrl) {
+            const today = new Date();
+            const endDateCurrent = new Date(today);
+            endDateCurrent.setDate(today.getDate() - 1);
+            const startDateCurrent = new Date(endDateCurrent);
+            startDateCurrent.setDate(endDateCurrent.getDate() - 27);
+
+            const endDatePrevious = new Date(startDateCurrent);
+            endDatePrevious.setDate(startDateCurrent.getDate() - 1);
+            const startDatePrevious = new Date(endDatePrevious);
+            startDatePrevious.setDate(endDatePrevious.getDate() - 27);
+
+            const formatDate = (date) => date.toISOString().split('T')[0];
+
+            console.log("Fetching GSC data...");
+            const currentPeriodData = await fetchSingleGscPeriod(siteUrl, formatDate(startDateCurrent), formatDate(endDateCurrent));
+            const previousPeriodData = await fetchSingleGscPeriod(siteUrl, formatDate(startDatePrevious), formatDate(endDatePrevious));
+            console.log("GSC data fetched.");
+
+            return { current: currentPeriodData, previous: previousPeriodData };
+        }
+
+        async function fetchSingleGscPeriod(siteUrl, startDate, endDate) {
+             const response = await gapi.client.webmasters.searchanalytics.query({
+                siteUrl: siteUrl,
+                resource: {
+                    startDate: startDate,
+                    endDate: endDate,
+                    dimensions: ['query'],
+                    rowLimit: 5000 
+                }
+            });
+            return response.result.rows || [];
+        }
+
+        async function performAnalysisWithGemini(inputs, gscData) {
+            const prompt = `
+                You are an expert Predictive SEO Analyst. Based on the provided GSC data and Reddit parameters, perform a comprehensive analysis.
+
+                **Analysis Parameters:**
+                - GSC Property URL: "${inputs.gscUrl}"
+                - GSC 'Emerging' Threshold: Impressions must increase by at least ${inputs.gscEmergingThreshold}% with a minimum of ${inputs.gscEmergingMinImpressions} current impressions.
+                - GSC 'Untapped' Threshold: Minimum ${inputs.gscUntappedMinImpressions} impressions and a maximum CTR of ${inputs.gscUntappedMaxCtr}%.
+                - Reddit Source: r/${inputs.redditSubreddit}, sorted by '${inputs.redditSort}'.
+
+                **Provided Data:**
+                - GSC Current Period Data (JSON): ${JSON.stringify(gscData.current)}
+                - GSC Previous Period Data (JSON): ${JSON.stringify(gscData.previous)}
+
+                **Required Steps:**
+                1.  **Analyze GSC Data:**
+                    - Identify 'Emerging', 'New', and 'Untapped' terms from the provided JSON data.
+                2.  **Fetch Reddit Data:** Get the top 25 posts from r/${inputs.redditSubreddit} sorted by '${inputs.redditSort}'.
+                3.  **Generate AI Insights & Data:** Based on ALL data, return a single, minified JSON object with the specified structure.
+
+                **Output Format (Strict):**
+                {
+                  "ai_insights": { "overall_summary": "...", "actionable_recommendations": ["...", "..."], "gsc_emerging_comment": "...", "gsc_new_comment": "...", "gsc_untapped_comment": "...", "reddit_comment": "..." },
+                  "gsc_emerging": [{"query": "...", "current_impressions": 0, "previous_impressions": 0, "growth_percentage": 0}],
+                  "gsc_new": [{"query": "...", "clicks": 0, "impressions": 0, "ctr": 0, "position": 0}],
+                  "gsc_untapped": [{"query": "...", "clicks": 0, "impressions": 0, "ctr": 0, "position": 0}],
+                  "reddit_posts": [{"title": "...", "score": 0, "num_comments": 0, "url": "...", "selftext": "..."}]
+                }
+            `;
+            
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.json();
+                throw new Error(errorBody?.error?.message || "API request failed.");
+            }
+
+            const result = await response.json();
+            const jsonText = result.candidates[0].content.parts[0].text;
+            return JSON.parse(jsonText);
+        }
+        
+        function renderResults(data) {
+            const { ai_insights } = data;
+            const summaryHtml = `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-3xl font-bold text-white mb-4">AI Insights Summary</h2>
+                            <p class="text-gray-300 mb-6">${ai_insights.overall_summary}</p>
+                        </div>
+                        <button id="download-sheet" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition whitespace-nowrap">
+                            Download as Google Sheet
+                        </button>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-white mb-3">Actionable Recommendations</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-300">
+                        ${ai_insights.actionable_recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            resultsContent.innerHTML += summaryHtml;
+            document.getElementById('download-sheet').addEventListener('click', exportToSheets);
+
+            createAccordionSection('GSC Emerging Terms', ai_insights.gsc_emerging_comment, data.gsc_emerging, ['query', 'current_impressions', 'previous_impressions', 'growth_percentage']);
+            createAccordionSection('GSC New Terms', ai_insights.gsc_new_comment, data.gsc_new, ['query', 'clicks', 'impressions', 'ctr', 'position']);
+            createAccordionSection('GSC Untapped Terms', ai_insights.gsc_untapped_comment, data.gsc_untapped, ['query', 'clicks', 'impressions', 'ctr', 'position']);
+            createAccordionSection('Reddit Posts', ai_insights.reddit_comment, data.reddit_posts, ['title', 'score', 'num_comments', 'url']);
+            
+            document.querySelectorAll('.accordion-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('svg');
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-180');
+                    }
+                });
+            });
+        }
+
+        function createAccordionSection(title, commentary, dataArray, headers) {
+            const tableHtml = createTable(dataArray, headers);
+            const section = `
+                <div class="bg-gray-800 rounded-lg shadow-lg">
+                    <button class="accordion-button w-full text-left p-4 flex justify-between items-center hover:bg-gray-700/50">
+                        <span class="text-xl font-semibold">${title}</span>
+                        <svg class="w-6 h-6 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-6 border-t border-gray-700">
+                            <p class="text-gray-400 italic mb-4">${commentary}</p>
+                            ${tableHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultsContent.innerHTML += section;
+        }
+
+        function createTable(dataArray, headers) {
+            if (!dataArray || dataArray.length === 0) return '<p class="text-gray-500">No data available for this section.</p>';
+            let table = '<div class="overflow-x-auto"><table class="min-w-full text-left text-sm">';
+            table += '<thead class="bg-gray-700/50"><tr>';
+            headers.forEach(header => table += `<th class="p-3 font-semibold capitalize">${header.replace(/_/g, ' ')}</th>`);
+            table += '</tr></thead>';
+            table += '<tbody class="divide-y divide-gray-700">';
+            dataArray.forEach(row => {
+                table += '<tr class="hover:bg-gray-700/30">';
+                headers.forEach(header => {
+                    let value = row[header] ?? 'N/A';
+                    if (typeof value === 'string' && value.startsWith('http')) value = `<a href="${value}" target="_blank" class="text-blue-400 hover:underline">${value}</a>`;
+                    table += `<td class="p-3 break-words">${value}</td>`;
+                });
+                table += '</tr>';
+            });
+            table += '</tbody></table></div>';
+            return table;
+        }
+
+        async function exportToSheets() {
+            const downloadButton = document.getElementById('download-sheet');
+            downloadButton.disabled = true;
+            downloadButton.textContent = 'Creating Sheet...';
+
+            try {
+                const spreadsheet = await gapi.client.sheets.spreadsheets.create({
+                    properties: {
+                        title: `Predictive SEO Report - ${gscUrlSelect.value} - ${new Date().toISOString().split('T')[0]}`
+                    }
+                });
+                
+                const spreadsheetId = spreadsheet.result.spreadsheetId;
+                const sheetRequests = [];
+
+                const dataSections = [
+                    { title: 'AI Insights', data: [analysisData.ai_insights] },
+                    { title: 'GSC Emerging', data: analysisData.gsc_emerging },
+                    { title: 'GSC New', data: analysisData.gsc_new },
+                    { title: 'GSC Untapped', data: analysisData.gsc_untapped },
+                    { title: 'Reddit Posts', data: analysisData.reddit_posts }
+                ];
+
+                let sheetIdCounter = 1;
+                dataSections.forEach(section => {
+                    if (section.data && section.data.length > 0) {
+                        const headers = Object.keys(section.data[0]);
+                        const rows = section.data.map(row => ({
+                            values: headers.map(header => ({
+                                userEnteredValue: { stringValue: String(row[header] ?? '') }
+                            }))
+                        }));
+
+                        sheetRequests.push({ addSheet: { properties: { title: section.title, sheetId: sheetIdCounter } } });
+                        sheetRequests.push({
+                            updateCells: {
+                                rows: [ { values: headers.map(h => ({ userEnteredValue: { stringValue: h } })) }, ...rows ],
+                                fields: 'userEnteredValue',
+                                start: { sheetId: sheetIdCounter, rowIndex: 0, columnIndex: 0 }
+                            }
+                        });
+                        sheetIdCounter++;
+                    }
+                });
+
+                // Delete the default 'Sheet1'
+                sheetRequests.push({ deleteSheet: { sheetId: 0 } });
+
+                await gapi.client.sheets.spreadsheets.batchUpdate({
+                    spreadsheetId: spreadsheetId,
+                    resource: { requests: sheetRequests }
+                });
+
+                const sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+                downloadButton.textContent = 'Open Google Sheet';
+                downloadButton.onclick = () => window.open(sheetUrl, '_blank');
+                downloadButton.disabled = false;
+
+            } catch (error) {
+                console.error("Error creating Google Sheet:", error);
+                alert("Failed to create Google Sheet. See console for details.");
+                downloadButton.textContent = 'Download as Google Sheet';
+                downloadButton.disabled = false;
+            }
+        }
+
+    </script>
+</body>
+</html>
