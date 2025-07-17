@@ -199,6 +199,7 @@
             try {
                 gapi.client.setToken(response);
 
+                // Load the specific API services we need *after* setting the token.
                 await gapi.client.load('https://searchconsole.googleapis.com/$discovery/rest?version=v1');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
