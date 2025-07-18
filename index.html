@@ -177,6 +177,7 @@
         };
 
         async function initializeGapiClient() {
+            // The GAPI client is initialized without an API key.
             await gapi.client.init({});
         }
 
