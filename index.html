@@ -178,7 +178,8 @@
         };
 
         async function initializeGapiClient() {
-            // The GAPI client is initialized without an API key.
+            // CORRECTED: The GAPI client is initialized without an API key.
+            // This prevents conflicts with the OAuth flow for GSC and Sheets.
             await gapi.client.init({});
         }
 
@@ -190,6 +191,8 @@
             }
             try {
                 gapi.client.setToken(response);
+
+                // Load the specific API services we need *after* setting the token.
                 await gapi.client.load('https://searchconsole.googleapis.com/$discovery/rest?version=v1');
                 await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
 
@@ -212,6 +215,7 @@
 
         async function fetchGscProperties() {
             try {
+                // CORRECTED: Use the modern 'searchconsole' service object
                 const response = await gapi.client.searchconsole.sites.list({});
                 const sites = response.result.siteEntry;
                 if (!sites || sites.length === 0) {
