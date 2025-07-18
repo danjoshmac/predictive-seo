@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Predictive SEO Analysis Tool</title>
-  <!-- Tailwind CDN warning is fine for demo -->
+  <!-- Tailwind CDN (demo only) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
@@ -13,17 +13,17 @@
   <script src="https://accounts.google.com/gsi/client"></script>
   <style>
     body { font-family:Inter,sans-serif; background:#111827; color:#f3f4f6; }
-    .button { display:inline-block; margin:0.5rem; padding:0.75rem 1.25rem; border-radius:0.375rem; font-weight:600; }
+    .btn { padding:.75rem 1.25rem; border-radius:.375rem; font-weight:600; cursor:pointer; }
     .btn-primary { background:#3b82f6; color:#fff; }
-    .btn-disabled { opacity:0.5; pointer-events:none; }
-    select,input { background:#374151; color:#f3f4f6; border:1px solid #4b5563; border-radius:0.375rem; padding:0.5rem; }
+    .btn-disabled { opacity:.5; pointer-events:none; }
+    select,input { background:#374151; color:#f3f4f6; border:1px solid #4b5563; border-radius:.375rem; padding:.5rem; width:100%; }
     .loader { border:4px solid #f3f3f3; border-top:4px solid #3b82f6; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:2rem auto; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .hidden { display:none; }
     .container { max-width:600px; margin:2rem auto; }
     h1,h2,h3 { color:#fff; }
     table { width:100%; border-collapse:collapse; margin-top:1rem; }
-    th,td { border:1px solid #4b5563; padding:0.5rem; color:#f3f4f6; }
+    th,td { border:1px solid #4b5563; padding:.5rem; color:#f3f4f6; }
   </style>
 </head>
 <body>
@@ -32,10 +32,8 @@
 
     <!-- AUTH -->
     <div id="auth-section">
-      <button id="auth-button" class="button btn-primary btn-disabled">
-        Sign in with Google
-      </button>
-      <p>Required: Search Console &amp; Sheets access</p>
+      <button id="auth-button" class="btn btn-primary btn-disabled">Sign in with Google</button>
+      <p>Requires Search Console &amp; Sheets access</p>
     </div>
 
     <!-- CONFIG -->
@@ -43,29 +41,14 @@
       <h2>1. Google Search Console</h2>
       <div id="gsc-loader" class="loader hidden"></div>
       <div id="gsc-inputs" class="hidden">
-        <label>
-          Property:
-          <select id="gsc-url"></select>
-        </label>
+        <label>Property URL<select id="gsc-url"></select></label>
       </div>
 
       <h2>2. Reddit</h2>
-      <label>
-        Subreddit:
-        <input type="text" id="reddit-subreddit" placeholder="b2bmarketing"/>
-      </label>
-      <label>
-        Sort:
-        <select id="reddit-sort">
-          <option>Hot</option><option>New</option><option>Top</option>
-        </select>
-      </label>
+      <label>Subreddit<input type="text" id="reddit-subreddit" placeholder="b2bmarketing"/></label>
+      <label>Sort<select id="reddit-sort"><option>Hot</option><option>New</option><option>Top</option></select></label>
 
-      <div>
-        <button id="run-button" class="button btn-primary btn-disabled">
-          Run Analysis
-        </button>
-      </div>
+      <button id="run-button" class="btn btn-primary btn-disabled">Run Analysis</button>
     </div>
 
     <!-- RESULTS -->
@@ -81,13 +64,13 @@
 
   <script>
     // --- CONFIG ---
-    const GEMINI_API_KEY   = 'AIzaSyANQlM8nra-lcWuNf2bC5tyxBexdH-flfk';
-    const GOOGLE_CLIENT_ID = '64568371966-4m8l8mp16mta4s8eriabdlecncdgumea.apps.googleusercontent.com';
-    const GAPI_SCOPES      = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/spreadsheets';
+    const GEMINI_KEY   = 'AIzaSyANQlM8nra-lcWuNf2bC5tyxBexdH-flfk';
+    const CLIENT_ID    = '64568371966-4m8l8mp16mta4s8eriabdlecncdgumea.apps.googleusercontent.com';
+    const SCOPES       = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/spreadsheets';
 
     let tokenClient, analysisData = {};
 
-    // --- ELEMENTS ---
+    // DOM
     const authBtn      = document.getElementById('auth-button');
     const runBtn       = document.getElementById('run-button');
     const gscLoader    = document.getElementById('gsc-loader');
@@ -100,30 +83,26 @@
 
     // --- CORE FUNCTIONS ---
 
-    // 1. Analysis runner
+    // 1) Run analysis
     async function handleAnalysis() {
-      // collect
       const inputs = {
-        gscUrl:           gscUrlSel.value,
-        redditSubreddit:  document.getElementById('reddit-subreddit').value,
-        redditSort:       document.getElementById('reddit-sort').value
+        property:        gscUrlSel.value,
+        subreddit:       document.getElementById('reddit-subreddit').value,
+        sort:            document.getElementById('reddit-sort').value
       };
-      if (!inputs.gscUrl || !inputs.redditSubreddit) {
-        alert('Select a GSC property and enter a Subreddit.');
+      if (!inputs.property || !inputs.subreddit) {
+        alert('Select a Search Console property and enter a Subreddit.');
         return;
       }
 
-      // UI
       runBtn.classList.add('btn-disabled');
       loaderDiv.classList.remove('hidden');
       errorDiv.classList.add('hidden');
       resultsDiv.innerHTML = '';
 
       try {
-        // fetch GSC
-        const gscData = await fetchAllGscData(inputs.gscUrl);
-        // call Gemini
-        const result = await performAnalysisWithGemini(inputs, gscData);
+        const gscData = await fetchAllGscData(inputs.property);
+        const result  = await callGemini(inputs, gscData);
         analysisData = result;
         renderResults(result);
       } catch (e) {
@@ -136,27 +115,27 @@
       }
     }
 
-    // 2. GSC data fetch (two 28‑day windows)
+    // 2) Fetch two 28‑day windows from Webmasters
     async function fetchAllGscData(siteUrl) {
-      const today = new Date();
-      const end1 = new Date(today); end1.setDate(today.getDate()-1);
-      const start1 = new Date(end1); start1.setDate(end1.getDate()-27);
-      const end2 = new Date(start1); end2.setDate(start1.getDate()-1);
-      const start2 = new Date(end2); start2.setDate(end2.getDate()-27);
-      const fmt = d => d.toISOString().slice(0,10);
+      const today  = new Date();
+      const end1   = new Date(today); end1.setDate(today.getDate()-1);
+      const start1 = new Date(end1);   start1.setDate(end1.getDate()-27);
+      const end2   = new Date(start1); end2.setDate(start1.getDate()-1);
+      const start2 = new Date(end2);   start2.setDate(end2.getDate()-27);
+      const fmt    = d => d.toISOString().slice(0,10);
 
-      const current = await fetchSingleGscPeriod(siteUrl, fmt(start1), fmt(end1));
-      const previous = await fetchSingleGscPeriod(siteUrl, fmt(start2), fmt(end2));
+      const current  = await fetchWindow(siteUrl, fmt(start1), fmt(end1));
+      const previous = await fetchWindow(siteUrl, fmt(start2), fmt(end2));
       return { current, previous };
     }
 
-    async function fetchSingleGscPeriod(siteUrl, startDate, endDate) {
-      console.log('GSC query', siteUrl, startDate, endDate);
-      const resp = await gapi.client.searchconsole.searchanalytics.query({
+    async function fetchWindow(siteUrl, startDate, endDate) {
+      console.log('Querying searchanalytics:', siteUrl, startDate, endDate);
+      const resp = await gapi.client.webmasters.searchanalytics.query({
         siteUrl: siteUrl,
-        resource: {
-          startDate: startDate,
-          endDate:   endDate,
+        requestBody: {
+          startDate:  startDate,
+          endDate:    endDate,
           dimensions: ['query'],
           rowLimit:   5000
         }
@@ -164,62 +143,59 @@
       return resp.result.rows || [];
     }
 
-    // 3. Call Gemini AI
-    async function performAnalysisWithGemini(inputs, gscData) {
-      const prompt = 'You are a Predictive SEO Analyst. Return JSON.';
+    // 3) Call Gemini
+    async function callGemini(inputs, gscData) {
+      const prompt = 'You are an expert Predictive SEO Analyst. Return strictly formatted JSON.';
       const payload = {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' }
+        contents: [{ role:'user', parts:[{ text:prompt }] }],
+        generationConfig: { responseMimeType:'application/json' }
       };
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + GEMINI_API_KEY;
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + GEMINI_KEY;
       const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body:JSON.stringify(payload)
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error?.message || 'Gemini API failed');
+        throw new Error(err.error?.message || 'Gemini request failed');
       }
       const js = await res.json();
       return JSON.parse(js.candidates[0].content.parts[0].text);
     }
 
-    // 4. Render results
+    // 4) Render minimal results
     function renderResults(data) {
-      // simple dump of AI insights and counts
-      const ai = data.ai_insights;
       let html = '<h3>AI Insights</h3>';
-      html += '<p>' + ai.overall_summary + '</p>';
+      html += '<p>' + data.ai_insights.overall_summary + '</p>';
       resultsDiv.innerHTML = html;
     }
 
-    // --- OAUTH & BOOTSTRAP ---
+    // --- OAUTH + BOOTSTRAP ---
 
     function handleAuthResponse(resp) {
-      console.log('AUTH', resp);
+      console.log('AUTH RESPONSE:', resp);
       if (resp.error) {
-        alert('Auth failed: ' + resp.error);
+        alert('Auth error: ' + resp.error);
         return;
       }
       gapi.client.setToken(resp);
-
-      // show config
       document.getElementById('auth-section').classList.add('hidden');
       document.getElementById('config-section').classList.remove('hidden');
       gscLoader.classList.remove('hidden');
-      fetchGSCProperties().then(() => {
+
+      fetchProperties().then(() => {
         runBtn.classList.remove('btn-disabled');
         runBtn.onclick = handleAnalysis;
       });
     }
 
-    async function fetchGSCProperties() {
+    async function fetchProperties() {
       try {
-        const res = await gapi.client.searchconsole.sites.list({});
-        console.log('sites.list()', res);
+        const res = await gapi.client.webmasters.sites.list({});
+        console.log('sites.list response:', res);
         const sites = res.result.siteEntry || [];
-        if (!sites.length) throw new Error('No properties found');
+        if (!sites.length) throw new Error('No Search Console properties found');
         gscUrlSel.innerHTML = sites.map(s => '<option>' + s.siteUrl + '</option>').join('');
         gscLoader.classList.add('hidden');
         gscInputs.classList.remove('hidden');
@@ -236,19 +212,19 @@
         try {
           await gapi.client.init({
             discoveryDocs: [
-              'https://www.googleapis.com/discovery/v1/apis/searchconsole/v1/rest',
+              'https://www.googleapis.com/discovery/v1/apis/webmasters/v3/rest',
               'https://sheets.googleapis.com/$discovery/rest?version=v4'
             ]
           });
-          console.log('APIs initialized');
+          console.log('APIs initialized: Webmasters v3 & Sheets v4');
         } catch (e) {
-          console.error(e);
-          alert('Failed to init APIs: ' + e.message);
+          console.error('gapi.client.init failed:', e);
+          alert('Failed to initialize Google APIs: ' + e.message);
           return;
         }
         tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: GAPI_SCOPES,
+          client_id: CLIENT_ID,
+          scope: SCOPES,
           callback: handleAuthResponse
         });
         authBtn.classList.remove('btn-disabled');
