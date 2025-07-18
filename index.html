@@ -188,14 +188,28 @@
             fetchGscProperties();
         }
 
+        // --- Robust Error Handling for Fetch ---
+        async function handleFetchError(response) {
+            let error;
+            try {
+                // Try to parse the error response as JSON
+                const errorData = await response.json();
+                error = new Error(errorData.error.message || `HTTP error! status: ${response.status}`);
+            } catch (e) {
+                // If parsing fails, use the raw text response
+                const errorText = await response.text();
+                error = new Error(errorText || `HTTP error! status: ${response.status}`);
+            }
+            return error;
+        }
+
         async function fetchGscProperties() {
             try {
                 const response = await fetch('https://searchconsole.googleapis.com/v1/sites', {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error.message);
+                    throw await handleFetchError(response);
                 }
                 const data = await response.json();
                 const sites = data.siteEntry;
@@ -292,8 +306,7 @@
                 })
             });
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(`GSC Data Fetch Error: ${error.error.message}`);
+                throw await handleFetchError(response);
             }
             const data = await response.json();
             return data.rows || [];
@@ -342,8 +355,7 @@
             });
 
             if (!response.ok) {
-                const errorBody = await response.json();
-                throw new Error(errorBody?.error?.message || "API request failed.");
+                throw await handleFetchError(response);
             }
 
             const result = await response.json();
@@ -450,6 +462,7 @@
                         }
                     })
                 });
+                if (!createSheetResponse.ok) throw await handleFetchError(createSheetResponse);
                 const spreadsheet = await createSheetResponse.json();
                 const spreadsheetId = spreadsheet.spreadsheetId;
                 
@@ -462,7 +475,7 @@
                 ];
 
                 const sheetRequests = [];
-                let sheetIdCounter = 0;
+                let sheetIdCounter = 1; // Start at 1 for new sheets
                 dataSections.forEach(section => {
                     if (section.data && section.data.length > 0) {
                         sheetRequests.push({ addSheet: { properties: { title: section.title, sheetId: sheetIdCounter } } });
@@ -482,13 +495,10 @@
                         sheetIdCounter++;
                     }
                 });
-                // The first sheet is created by default, so we need to delete it if we added others.
-                if (sheetIdCounter > 0) {
-                   sheetRequests.push({ deleteSheet: { sheetId: 0 } });
-                }
+                // The first sheet is created by default with sheetId=0, so we need to delete it.
+                sheetRequests.push({ deleteSheet: { sheetId: 0 } });
 
-
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+                const batchUpdateResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
@@ -497,6 +507,8 @@
                     body: JSON.stringify({ requests: sheetRequests })
                 });
 
+                if (!batchUpdateResponse.ok) throw await handleFetchError(batchUpdateResponse);
+
                 const sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
                 downloadButton.textContent = 'Open Google Sheet';
                 downloadButton.onclick = () => window.open(sheetUrl, '_blank');
@@ -504,7 +516,7 @@
 
             } catch (error) {
                 console.error("Error creating Google Sheet:", error);
-                alert("Failed to create Google Sheet. See console for details.");
+                alert(`Failed to create Google Sheet.\n\nError: ${error.message}`);
                 downloadButton.textContent = 'Download as Google Sheet';
                 downloadButton.disabled = false;
             }
