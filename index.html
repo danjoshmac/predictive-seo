@@ -14,7 +14,7 @@
   <style>
     body { font-family:'Inter',sans-serif; background:#111827; color:#f3f4f6 }
     .loader { border:4px solid #f3f3f3; border-top:4px solid #3b82f6; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite }
-    @keyframes spin { to { transform:rotate(360deg) } }
+    @keyframes spin { to{transform:rotate(360deg)} }
     .input-field { background:#374151; border-color:#4b5563; color:#f3f4f6 }
     .input-field:focus { background:#4b5563; border-color:#3b82f6; outline:none }
     .accordion-button { transition:background-color .2s }
@@ -28,22 +28,27 @@
       <p class="text-gray-400 mt-3">Connect your accounts to uncover emerging trends and content opportunities.</p>
     </header>
 
+    <!-- AUTH -->
     <div id="auth-section" class="text-center">
       <button id="auth-button"
-        class="bg-white text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md flex items-center justify-center mx-auto hover:bg-gray-200 transition">
-        <!-- Google G icon -->
-        <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.12 24.5c0-1.56..."/></svg>
+              disabled
+              class="bg-white text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md flex items-center justify-center mx-auto hover:bg-gray-200 transition disabled:opacity-50">
+        <!-- Google G -->
+        <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48">
+          <path fill="#4285F4" d="M45.12 24.5c0-1.56..."/>
+        </svg>
         Sign in with Google
       </button>
       <p class="text-xs text-gray-500 mt-3">Required for Search Console &amp; Sheets access.</p>
     </div>
 
+    <!-- CONFIG -->
     <div id="config-section" class="hidden space-y-8">
-      <!-- GSC Config -->
+      <!-- GSC -->
       <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
         <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-3">1. Google Search Console</h2>
         <div id="gsc-loader" class="text-center hidden">
-          <p class="text-gray-400">Loading your GSC properties...</p>
+          <p class="text-gray-400">Loading your GSC properties…</p>
         </div>
         <div id="gsc-config-inputs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -55,11 +60,11 @@
             <input type="number" id="gsc-emerging-threshold" class="w-full p-2 rounded input-field" value="50">
           </div>
           <div>
-            <label for="gsc-emerging-min-impressions" class="block text-sm font-medium mb-1">'Emerging' Min Impr.</label>
+            <label for="gsc-emerging-min-impressions" class="block text-sm font-medium mb-1">'Emerging' Min</label>
             <input type="number" id="gsc-emerging-min-impressions" class="w-full p-2 rounded input-field" value="100">
           </div>
           <div>
-            <label for="gsc-untapped-min-impressions" class="block text-sm font-medium mb-1">'Untapped' Min Impr.</label>
+            <label for="gsc-untapped-min-impressions" class="block text-sm font-medium mb-1">'Untapped' Min</label>
             <input type="number" id="gsc-untapped-min-impressions" class="w-full p-2 rounded input-field" value="500">
           </div>
           <div>
@@ -69,7 +74,7 @@
         </div>
       </div>
 
-      <!-- Reddit Config -->
+      <!-- Reddit -->
       <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
         <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-3">2. Reddit</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -86,14 +91,17 @@
         </div>
       </div>
 
+      <!-- Run -->
       <div class="text-center pt-4">
         <button id="run-analysis"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition">
+                disabled
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition disabled:opacity-50">
           Run Predictive Analysis
         </button>
       </div>
     </div>
 
+    <!-- RESULTS -->
     <div id="results-section" class="hidden mt-12">
       <div id="loader-container" class="text-center py-10">
         <div class="loader mx-auto"></div>
@@ -108,126 +116,99 @@
   </div>
 
   <script>
+    // --- Config ---
     const GEMINI_API_KEY   = "AIzaSyANQlM8nra-lcWuNf2bC5tyxBexdH-flfk";
     const GOOGLE_CLIENT_ID = "64568371966-4m8l8mp16mta4s8eriabdlecncdgumea.apps.googleusercontent.com";
     const GAPI_SCOPES      = "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/spreadsheets";
 
-    let tokenClient, analysisData={};
+    let tokenClient, analysisData = {};
 
-    const authButton      = document.getElementById('auth-button');
-    const authSection     = document.getElementById('auth-section');
-    const configSection   = document.getElementById('config-section');
-    const gscLoader       = document.getElementById('gsc-loader');
-    const gscConfigInputs = document.getElementById('gsc-config-inputs');
-    const gscUrlSelect    = document.getElementById('gsc-url-select');
-    const runButton       = document.getElementById('run-analysis');
-    const resultsSection  = document.getElementById('results-section');
-    const loaderContainer = document.getElementById('loader-container');
-    const errorContainer  = document.getElementById('error-container');
-    const errorMessage    = document.getElementById('error-message');
-    const resultsContent  = document.getElementById('results-content');
+    // DOM refs
+    const authButton      = document.getElementById("auth-button");
+    const runButton       = document.getElementById("run-analysis");
+    const authSection     = document.getElementById("auth-section");
+    const configSection   = document.getElementById("config-section");
+    const gscLoader       = document.getElementById("gsc-loader");
+    const gscInputs       = document.getElementById("gsc-config-inputs");
+    const gscUrlSelect    = document.getElementById("gsc-url-select");
+    const resultsSection  = document.getElementById("results-section");
+    const loaderContainer = document.getElementById("loader-container");
+    const errorContainer  = document.getElementById("error-container");
+    const errorMessage    = document.getElementById("error-message");
+    const resultsContent  = document.getElementById("results-content");
 
     window.onload = () => {
-      // 1) load the client library
-      gapi.load('client', initializeGapiClient);
+      // 1) Load the gapi.client library *and* both discovery docs
+      gapi.load("client", async () => {
+        try {
+          await gapi.client.init({
+            discoveryDocs: [
+              "https://searchconsole.googleapis.com/$discovery/rest?version=v1",
+              "https://sheets.googleapis.com/$discovery/rest?version=v4"
+            ]
+          });
 
-      // 2) prepare the OAuth2 token client
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: GAPI_SCOPES,
-        callback: handleAuthResponse,
+          // 2) Now that searchconsole & sheets are wired, enable sign‑in
+          tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GAPI_SCOPES,
+            callback: handleAuthResponse
+          });
+          authButton.disabled = false;
+          authButton.addEventListener("click", () => tokenClient.requestAccessToken());
+
+          // 3) Enable the “Run” button after sign‑in (we wire up the handler here)
+          runButton.addEventListener("click", handleAnalysis);
+        } catch (e) {
+          console.error("Failed to initialize GAPI client:", e);
+          alert("Error loading Google APIs: " + e.message);
+        }
       });
-
-      authButton.addEventListener('click', () => tokenClient.requestAccessToken());
-      runButton.addEventListener('click', handleAnalysis);
     };
 
-    async function initializeGapiClient() {
-      // no discoveryDocs here—just init an empty client
-      await gapi.client.init({});
-    }
-
+    // OAuth callback
     async function handleAuthResponse(resp) {
       console.log("Authentication response:", resp);
       if (resp.error) {
-        alert('Auth failed: '+resp.error);
+        alert("Authentication failed: " + resp.error);
         return;
       }
-
-      // install the returned token
+      // install token
       gapi.client.setToken(resp);
 
-      // now load *both* APIs by name/version
-      await gapi.client.load('searchconsole','v1');
-      await gapi.client.load('sheets','v4');
+      // switch UI
+      authSection.classList.add("hidden");
+      configSection.classList.remove("hidden");
+      gscLoader.classList.remove("hidden");
 
-      // show UI
-      authSection.classList.add('hidden');
-      configSection.classList.remove('hidden');
-      gscLoader.classList.remove('hidden');
-
-      // fetch GSC properties
-      fetchGscProperties();
+      // fetch the list of GSC properties
+      await fetchGscProperties();
+      runButton.disabled = false;
     }
 
+    // pull the site list
     async function fetchGscProperties() {
       try {
         const res = await gapi.client.searchconsole.sites.list({});
         const sites = res.result.siteEntry;
-        if (!sites || sites.length===0) throw new Error("No properties found");
-        gscUrlSelect.innerHTML = sites.map(s=>`<option value="${s.siteUrl}">${s.siteUrl}</option>`).join('');
-        gscLoader.classList.add('hidden');
-        gscConfigInputs.classList.remove('hidden');
-      } catch(err) {
-        console.error("Error fetching GSC:", err);
-        alert("Could not fetch GSC properties.\n"+err.message);
-        gscLoader.classList.add('hidden');
-        authSection.classList.remove('hidden');
-        configSection.classList.add('hidden');
+        if (!sites || !sites.length) throw new Error("No properties found");
+        gscUrlSelect.innerHTML = sites
+          .map(s => `<option value="${s.siteUrl}">${s.siteUrl}</option>`)
+          .join("");
+        gscLoader.classList.add("hidden");
+        gscInputs.classList.remove("hidden");
+      } catch (err) {
+        console.error("Error fetching GSC properties:", err);
+        alert("Could not fetch GSC properties.\n\n" + err.message);
+        gscLoader.classList.add("hidden");
+        authSection.classList.remove("hidden");
+        configSection.classList.add("hidden");
       }
     }
 
-    async function handleAnalysis() {
-      const inputs = {
-        gscUrl: gscUrlSelect.value,
-        gscEmergingThreshold: document.getElementById('gsc-emerging-threshold').value || '50',
-        gscEmergingMinImpressions: document.getElementById('gsc-emerging-min-impressions').value || '100',
-        gscUntappedMinImpressions: document.getElementById('gsc-untapped-min-impressions').value || '500',
-        gscUntappedMaxCtr: document.getElementById('gsc-untapped-max-ctr').value || '1.5',
-        redditSubreddit: document.getElementById('reddit-subreddit').value,
-        redditSort: document.getElementById('reddit-sort').value
-      };
-      if (!inputs.gscUrl || !inputs.redditSubreddit) {
-        alert("Select a GSC property and enter a Subreddit.");
-        return;
-      }
-      configSection.classList.add('hidden');
-      resultsSection.classList.remove('hidden');
-      loaderContainer.classList.remove('hidden');
-      errorContainer.classList.add('hidden');
-      resultsContent.classList.add('hidden');
-      resultsContent.innerHTML='';
-
-      try {
-        const gscData = await fetchAllGscData(inputs.gscUrl);
-        const analysisResult = await performAnalysisWithGemini(inputs, gscData);
-        analysisData = analysisResult;
-        renderResults(analysisResult);
-        loaderContainer.classList.add('hidden');
-        resultsContent.classList.remove('hidden');
-      } catch(e) {
-        console.error("Analysis error:", e);
-        loaderContainer.classList.add('hidden');
-        errorMessage.textContent = e.message||"Unknown error";
-        errorContainer.classList.remove('hidden');
-      }
-    }
-
-    // copy your fetchAllGscData, fetchSingleGscPeriod,
-    // performAnalysisWithGemini, renderResults, createAccordionSection,
-    // createTable, and exportToSheets functions verbatim here...
-    // (they do not change)
-
+    // … all of your existing functions: fetchAllGscData, performAnalysisWithGemini,
+    //     handleAnalysis, renderResults, createAccordionSection, createTable, exportToSheets …
+    // Just drop them in here, unchanged.
   </script>
 </body>
 </html>
