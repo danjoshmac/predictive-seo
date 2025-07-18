@@ -1,183 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Predictive SEO Analysis Tool</title>
-  <!-- Tailwind CDN (demo only) -->
+  <!-- Tailwind CDN (for demo) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client"></script>
   <style>
-    body { font-family:Inter,sans-serif; background:#111827; color:#f3f4f6; }
-    .btn { padding:.75rem 1.25rem; border-radius:.375rem; font-weight:600; cursor:pointer; }
-    .btn-primary { background:#3b82f6; color:#fff; }
+    body { font-family:'Inter',sans-serif; background:#111827; color:#f3f4f6; }
+    .loader { border:4px solid #374151; border-top:4px solid #3b82f6; border-radius:50%; width:36px; height:36px; animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .input-field { background:#1f2937; color:#f3f4f6; border:1px solid #4b5563; border-radius:.375rem; padding:.5rem; }
+    .btn { @apply px-4 py-2 rounded font-semibold shadow; }
+    .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white; }
     .btn-disabled { opacity:.5; pointer-events:none; }
-    select,input { width:100%; padding:.5rem; border-radius:.375rem; background:#374151; color:#f3f4f6; border:1px solid #4b5563; }
-    .loader { border:4px solid #f3f3f3; border-top:4px solid #3b82f6; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:2rem auto; }
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .hidden{display:none}
-    .container{max-width:600px;margin:2rem auto}
-    h1,h2{color:#fff;margin-bottom:1rem}
   </style>
 </head>
-<body>
-  <div class="container">
-    <h1>Predictive SEO Analysis Tool</h1>
+<body class="p-6">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <header class="text-center">
+      <h1 class="text-4xl font-bold">Predictive SEO Analysis Tool</h1>
+      <p class="text-gray-400 mt-2">Analyze GSC, Reddit &amp; Gemini trends in one click.</p>
+    </header>
 
-    <div id="auth-section">
-      <button id="auth-button" class="btn btn-primary btn-disabled">Sign in with Google</button>
-      <p>Requires Search Console &amp; Sheets OAuth</p>
-    </div>
+    <!-- Auth -->
+    <section id="auth-section" class="text-center space-y-4">
+      <button id="auth-button" class="btn btn-primary btn-disabled mx-auto flex items-center space-x-2">
+        <span>Sign in with Google</span>
+      </button>
+      <p class="text-sm text-gray-500">Authorize Search Console &amp; Sheets</p>
+    </section>
 
-    <div id="config-section" class="hidden space-y-4">
-      <h2>1. Pick a GSC Property</h2>
-      <div id="gsc-loader" class="loader hidden"></div>
-      <div id="gsc-inputs" class="hidden">
-        <select id="gsc-url"></select>
+    <!-- Config -->
+    <section id="config-section" class="hidden space-y-6">
+      <div class="space-y-4 bg-gray-800 p-6 rounded-lg">
+        <h2 class="text-2xl font-semibold">1. Google Search Console</h2>
+        <div id="gsc-loader" class="loader mx-auto hidden"></div>
+        <select id="gsc-url" class="input-field w-full hidden"></select>
+        <div class="grid grid-cols-2 gap-4 hidden" id="thresholds">
+          <input id="emerge-thresh" type="number" placeholder="Emerging % (e.g.50)" class="input-field" />
+          <input id="emerge-min" type="number" placeholder="Emerging Min Impr." class="input-field" />
+          <input id="untap-min" type="number" placeholder="Untapped Min Impr." class="input-field" />
+          <input id="untap-ctr" type="number" placeholder="Untapped Max CTR %" class="input-field" />
+        </div>
       </div>
 
-      <h2>2. Reddit Settings</h2>
-      <input type="text" id="reddit-subreddit" placeholder="Subreddit (e.g. b2bmarketing)" />
-      <select id="reddit-sort">
-        <option>Hot</option><option>New</option><option>Top</option>
-      </select>
+      <div class="space-y-4 bg-gray-800 p-6 rounded-lg">
+        <h2 class="text-2xl font-semibold">2. Reddit</h2>
+        <input id="reddit-subreddit" type="text" placeholder="Subreddit (e.g. b2bmarketing)" class="input-field w-full" />
+        <select id="reddit-sort" class="input-field w-full">
+          <option>Hot</option><option>New</option><option>Top</option><option>Rising</option><option>Controversial</option>
+        </select>
+      </div>
 
-      <button id="run-button" class="btn btn-primary btn-disabled">Run Analysis</button>
-    </div>
+      <button id="run-button" class="btn btn-primary btn-disabled w-full">Run Predictive Analysis</button>
+    </section>
 
-    <div id="results-section" class="hidden space-y-4">
-      <div id="loader" class="loader hidden"></div>
-      <div id="error" class="hidden text-red-400"></div>
-      <pre id="results-content" class="bg-gray-800 p-4 rounded overflow-auto text-sm"></pre>
-    </div>
+    <!-- Results -->
+    <section id="results-section" class="hidden space-y-6">
+      <div id="loader-container" class="text-center py-8"><div class="loader mx-auto"></div><p class="mt-2 text-gray-400">Analyzing…</p></div>
+      <div id="error" class="hidden bg-red-800 p-4 rounded text-red-300"></div>
+      <div id="results-content" class="space-y-6"></div>
+    </section>
   </div>
 
   <script>
-  // --- CONFIG ---
-  const GOOGLE_CLIENT_ID = '64568371966-4m8l8mp16mta4s8eriabdlecncdgumea.apps.googleusercontent.com';
-  const GSC_API_BASE     = 'https://www.googleapis.com/webmasters/v3';
-  const SCOPES           = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/spreadsheets';
+    // Config
+    const CLIENT_ID = '447933251845-25uu1hu0qmgf8so56o7ne52e4mo23384.apps.googleusercontent.com';        // TODO
+    const GAPI_SCOPES = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/spreadsheets';
+    const GSC_BASE = 'https://www.googleapis.com/webmasters/v3';
+    const GEMINI_KEY = 'AIzaSyANQlM8nra-lcWuNf2bC5tyxBexdH-flfk';        // TODO
 
-  let accessToken = '';
-  let tokenClient;
+    let accessToken = '';
+    let tokenClient;
 
-  // DOM refs
-  const authBtn      = document.getElementById('auth-button');
-  const runBtn       = document.getElementById('run-button');
-  const gscLoader    = document.getElementById('gsc-loader');
-  const gscInputs    = document.getElementById('gsc-inputs');
-  const gscSelect    = document.getElementById('gsc-url');
-  const redditInput  = document.getElementById('reddit-subreddit');
-  const redditSort   = document.getElementById('reddit-sort');
-  const resultsSec   = document.getElementById('results-section');
-  const loader       = document.getElementById('loader');
-  const errorDiv     = document.getElementById('error');
-  const resultsPre   = document.getElementById('results-content');
+    // Elements
+    const authBtn = document.getElementById('auth-button');
+    const configSection = document.getElementById('config-section');
+    const gscLoader = document.getElementById('gsc-loader');
+    const gscUrl = document.getElementById('gsc-url');
+    const thresholds = document.getElementById('thresholds');
+    const emergeThresh = document.getElementById('emerge-thresh');
+    const emergeMin = document.getElementById('emerge-min');
+    const untapMin = document.getElementById('untap-min');
+    const untapCtr = document.getElementById('untap-ctr');
+    const redditSub = document.getElementById('reddit-subreddit');
+    const redditSort = document.getElementById('reddit-sort');
+    const runBtn = document.getElementById('run-button');
+    const resultsSection = document.getElementById('results-section');
+    const loaderContainer = document.getElementById('loader-container');
+    const errorDiv = document.getElementById('error');
+    const resultsContent = document.getElementById('results-content');
 
-  // --- AUTH SETUP ---
-  window.onload = () => {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
-      callback: resp => {
-        if (resp.error) return alert('Auth error: ' + resp.error);
-        accessToken = resp.access_token;
-        initConfigUI();
-      }
-    });
-    authBtn.classList.remove('btn-disabled');
-    authBtn.onclick = () => tokenClient.requestAccessToken();
-  };
-
-  // --- CONFIG UI ---
-  async function initConfigUI() {
-    document.getElementById('auth-section').classList.add('hidden');
-    document.getElementById('config-section').classList.remove('hidden');
-    gscLoader.classList.remove('hidden');
-
-    try {
-      const res = await fetch(`${GSC_API_BASE}/sites`, {
-        headers: { 'Authorization': 'Bearer ' + accessToken }
+    // --- Auth ---
+    window.onload = () => {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: GAPI_SCOPES,
+        callback: (resp) => {
+          if (resp.error) return alert('Auth error: '+resp.error);
+          accessToken = resp.access_token;
+          initConfig();
+        }
       });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      // data.siteEntry is an array of {siteUrl, permissionLevel}
-      gscSelect.innerHTML = data.siteEntry.map(s=>`<option>${s.siteUrl}</option>`).join('');
-      gscLoader.classList.add('hidden');
-      gscInputs.classList.remove('hidden');
-      runBtn.classList.remove('btn-disabled');
-      runBtn.onclick = runAnalysis;
-    } catch (e) {
-      gscLoader.classList.add('hidden');
-      alert('Could not fetch GSC properties:\n' + e.message);
-    }
-  }
-
-  // --- RUN ANALYSIS ---
-  async function runAnalysis() {
-    const property = gscSelect.value;
-    const subreddit = redditInput.value.trim();
-    const sort = redditSort.value;
-    if (!property || !subreddit) {
-      return alert('Please select a property and enter a subreddit.');
-    }
-
-    // Show loaders
-    resultsSec.classList.remove('hidden');
-    loader.classList.remove('hidden');
-    errorDiv.classList.add('hidden');
-    resultsPre.textContent = '';
-
-    try {
-      // Fetch last 28 days vs previous 28 days
-      const today = new Date();
-      const end1 = new Date(today); end1.setDate(end1.getDate()-1);
-      const start1 = new Date(end1); start1.setDate(start1.getDate()-27);
-      const end2 = new Date(start1); end2.setDate(end2.getDate()-1);
-      const start2 = new Date(end2); start2.setDate(end2.getDate()-27);
-      const fmt = d => d.toISOString().slice(0,10);
-
-      const [current, previous] = await Promise.all([
-        queryAnalytics(property, fmt(start1), fmt(end1)),
-        queryAnalytics(property, fmt(start2), fmt(end2))
-      ]);
-
-      // (For brevity we’ll just dump those two arrays + reddit params)
-      const result = { current, previous, reddit:{subreddit,sort} };
-
-      // Display everything
-      resultsPre.textContent = JSON.stringify(result, null, 2);
-    } catch (e) {
-      console.error(e);
-      errorDiv.textContent = e.message;
-      errorDiv.classList.remove('hidden');
-    } finally {
-      loader.classList.add('hidden');
-    }
-  }
-
-  // Helper: call searchanalytics/query
-  async function queryAnalytics(siteUrl, startDate, endDate) {
-    const body = {
-      startDate, endDate,
-      dimensions: ['query'],
-      rowLimit: 5000
+      authBtn.classList.remove('btn-disabled');
+      authBtn.onclick = () => tokenClient.requestAccessToken();
     };
-    const res = await fetch(`${GSC_API_BASE}/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + accessToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error(await res.text());
-    const js = await res.json();
-    return js.rows || [];
-  }
+
+    async function initConfig() {
+      document.getElementById('auth-section').classList.add('hidden');
+      configSection.classList.remove('hidden');
+      gscLoader.classList.remove('hidden');
+      // fetch GSC properties
+      try {
+        const res = await fetch(`${GSC_BASE}/sites`, { headers:{'Authorization':'Bearer '+accessToken} });
+        if(!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        gscUrl.innerHTML = data.siteEntry.map(s=>`<option>${s.siteUrl}</option>`).join('');
+        gscLoader.classList.add('hidden');
+        gscUrl.classList.remove('hidden'); thresholds.classList.remove('hidden');
+        runBtn.classList.remove('btn-disabled');
+        runBtn.onclick = runAnalysis;
+      } catch(e) {
+        gscLoader.classList.add('hidden');
+        alert('Could not load GSC props: '+e.message);
+      }
+    }
+
+    async function runAnalysis() {
+      const prop = gscUrl.value;
+      const sub = redditSub.value.trim();
+      const sort = redditSort.value.toLowerCase();
+      const et = parseFloat(emergeThresh.value)/100;
+      const emi = parseInt(emergeMin.value);
+      const umi = parseInt(untapMin.value);
+      const uctr = parseFloat(untapCtr.value)/100;
+      if(!prop||!sub) return alert('Enter GSC property & subreddit');
+
+      // show loader
+      resultsSection.classList.remove('hidden');
+      loaderContainer.classList.remove('hidden');
+      errorDiv.classList.add('hidden');
+      resultsContent.innerHTML='';
+
+      try {
+        // compute dates
+        const today=new Date(), end1=new Date(today); end1.setDate(end1.getDate()-1);
+        const start1=new Date(end1); start1.setDate(start1.getDate()-27);
+        const end2=new Date(start1); end2.setDate(end2.getDate()-1);
+        const start2=new Date(end2); start2.setDate(start2.getDate()-27);
+        const fmt=d=>d.toISOString().split('T')[0];
+        // fetch GSC data
+        const [cur,prev] = await Promise.all([
+          queryGSC(prop,fmt(start1),fmt(end1)),
+          queryGSC(prop,fmt(start2),fmt(end2))
+        ]);
+        // reddit
+        const redditData = await fetch(`https://www.reddit.com/r/${sub}/${sort}.json?limit=25`).then(r=>r.json());
+        // build prompt & call Gemini
+        const prompt = JSON.stringify({cur,prev,reddit:redditData},null,2);
+        const gemRes = await callGemini(prompt);
+        // render
+        renderResults(cur,prev,redditData,gemRes);
+      } catch(e) {
+        errorDiv.textContent = e.message; errorDiv.classList.remove('hidden');
+      } finally {
+        loaderContainer.classList.add('hidden');
+      }
+    }
+
+    async function queryGSC(siteUrl,start,end) {
+      const body={startDate:start,endDate:end,dimensions:['query'],rowLimit:5000};
+      const res = await fetch(`${GSC_BASE}/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,{
+        method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify(body)
+      }); if(!res.ok) throw new Error(await res.text());
+      return (await res.json()).rows||[];
+    }
+
+    async function callGemini(prompt) {
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json'}})});
+      if(!res.ok) throw new Error('Gemini error');
+      const js=await res.json(); return JSON.parse(js.candidates[0].content.parts[0].text);
+    }
+
+    function renderResults(cur,prev,reddit,insights) {
+      let html=`<div class='bg-gray-800 p-4 rounded'><h3 class='text-xl font-bold'>Overall</h3><p>${insights.overall_summary}</p></div>`;
+      html+=`<pre class='bg-gray-900 p-3 rounded text-sm'>${JSON.stringify(insights,null,2)}</pre>`;
+      resultsContent.innerHTML=html;
+    }
   </script>
 </body>
 </html>
