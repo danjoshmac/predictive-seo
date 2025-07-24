@@ -1,17 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Predictive SEO Tool</title>
-  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-900 p-6 font-sans">
   <div class="max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold mb-4">🔍 Predictive SEO Tool</h1>
-    <button id="gsc-auth" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Connect Google Search Console</button>
+    <div id="g_id_onload"
+         data-client_id="447933251845-25uu1hu0qmgf8so56o7ne52e4mo23384.apps.googleusercontent.com"
+         data-auto_prompt="false"
+         data-callback="onGoogleLogin">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular"
+         data-logo_alignment="left">
+    </div>
+
     <div class="mt-6">
       <label class="block mb-2">Subreddit:</label>
       <input type="text" id="subreddit" value="b2bmarketing" class="w-full border p-2 rounded" />
@@ -33,14 +46,17 @@
   </div>
 
   <script>
-    const GOOGLE_CLIENT_ID = '447933251845-25uu1hu0qmgf8so56o7ne52e4mo23384.apps.googleusercontent.com';
     const GEMINI_API_KEY = 'AIzaSyBNZRpbEG_cdgKra0ByDVqtCdZro-uTk_M';
     const REDDIT_CLIENT_ID = 'FhzWxs4ciMA2Qz1HB590NQ';
     const REDDIT_CLIENT_SECRET = 'JqB8jI7oFttg0Qd9mx3gS81Q-qTHlw';
     const REDDIT_AUTH_URL = 'https://www.reddit.com/api/v1/access_token';
 
-    let gscAccess = null;
-    let gscService = null;
+    let gAccessToken = null;
+
+    function onGoogleLogin(response) {
+      gAccessToken = response.credential;
+      log('✅ Google Identity login complete.');
+    }
 
     const log = (msg) => {
       const el = document.getElementById('status');
@@ -62,8 +78,16 @@
         dimensions: ['query'],
         rowLimit: 25000
       };
-      const response = await gapi.client.webmasters.searchanalytics.query({ siteUrl, resource: body });
-      return response.result.rows?.map(r => ({
+      const res = await fetch(`https://searchconsole.googleapis.com/v1/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${gAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      return data.rows?.map(r => ({
         query: r.keys[0],
         clicks: r.clicks,
         impressions: r.impressions,
@@ -116,9 +140,7 @@
     }
 
     async function fetchGeminiInsights(emerging, newTerms, untapped, reddit) {
-      const prompt = `Analyze:
-
-GSC Emerging:\n${JSON.stringify(emerging)}\n\nGSC New:\n${JSON.stringify(newTerms)}\n\nGSC Untapped:\n${JSON.stringify(untapped)}\n\nReddit Posts:\n${JSON.stringify(reddit)}`;
+      const prompt = `Analyze:\n\nGSC Emerging:\n${JSON.stringify(emerging)}\n\nGSC New:\n${JSON.stringify(newTerms)}\n\nGSC Untapped:\n${JSON.stringify(untapped)}\n\nReddit Posts:\n${JSON.stringify(reddit)}`;
 
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -133,7 +155,7 @@ GSC Emerging:\n${JSON.stringify(emerging)}\n\nGSC New:\n${JSON.stringify(newTerm
       const wb = XLSX.utils.book_new();
       const wrap = (data, sheetName) => {
         const ws = XLSX.utils.json_to_sheet(data);
-        XLSX.utils.sheet_add_aoa(ws, [[`Insights:`], [insights], []], { origin: 'A1' });
+        XLSX.utils.sheet_add_aoa(ws, [["Insights:"], [insights], []], { origin: 'A1' });
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       };
       wrap(emerging, 'Emerging');
@@ -142,18 +164,6 @@ GSC Emerging:\n${JSON.stringify(emerging)}\n\nGSC New:\n${JSON.stringify(newTerm
       wrap(reddit, 'Reddit');
       XLSX.writeFile(wb, 'predictive_seo_report.xlsx');
     }
-
-    document.getElementById('gsc-auth').addEventListener('click', () => {
-      gapi.load('client:auth2', async () => {
-        await gapi.client.init({
-          clientId: GOOGLE_CLIENT_ID,
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/webmasters/v3/rest'],
-          scope: 'https://www.googleapis.com/auth/webmasters.readonly'
-        });
-        await gapi.auth2.getAuthInstance().signIn();
-        log('✅ GSC Auth complete');
-      });
-    });
 
     document.getElementById('fetch-data').addEventListener('click', async () => {
       const url = document.getElementById('gsc-url').value;
