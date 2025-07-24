@@ -1,171 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predictive SEO Analysis Tool</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #111827;
-            color: #f3f4f6;
-        }
-        .loader {
-            border: 4px solid #f3f4f6;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .input-field {
-            background-color: #374151;
-            border-color: #4b5563;
-            color: #f3f4f6;
-        }
-        .input-field:focus {
-            background-color: #4b5563;
-            border-color: #3b82f6;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.5);
-        }
-        .accordion-button {
-            transition: background-color 0.2s ease-in-out;
-        }
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-in-out;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Predictive SEO Tool</title>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body class="p-4 sm:p-6 md:p-8">
-
-    <div class="container mx-auto max-w-5xl">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold text-white">Predictive SEO Analysis Tool</h1>
-            <p class="text-gray-400 mt-3">Connect your accounts to uncover emerging trends and content opportunities.</p>
-        </header>
-
-        <!-- Auth Section -->
-        <div id="auth-section" class="text-center">
-             <button id="auth-button" class="bg-white text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md flex items-center justify-center mx-auto hover:bg-gray-200 transition">
-                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"></path><path fill="#34A853" d="M24 46c5.94 0 10.92-1.96 14.56-5.3l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"></path><path fill="#FBBC05" d="M11.69 28.18c-.45-1.32-.7-2.73-.7-4.18s.25-2.86.7-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"></path><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 12.48l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"></path><path fill="none" d="M2 2h44v44H2z"></path></svg>
-                Sign in with Google
-            </button>
-            <p class="text-xs text-gray-500 mt-3">Required for Google Search Console &amp; Google Sheets access.</p>
-        </div>
-
-        <!-- Configuration Section -->
-        <div id="config-section" class="hidden space-y-8">
-            <!-- GSC Config -->
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-3">1. Google Search Console</h2>
-                <div id="gsc-loader" class="text-center hidden">
-                    <p class="text-gray-400">Loading your GSC properties...</p>
-                </div>
-                <div id="gsc-config-inputs" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="gsc-url-select" class="block text-sm font-medium mb-1">Select Property</label>
-                        <select id="gsc-url-select" class="w-full p-2 rounded input-field"></select>
-                    </div>
-                     <div>
-                        <label for="gsc-emerging-threshold" class="block text-sm font-medium mb-1">'Emerging' Impression Increase Threshold (%)</label>
-                        <input type="number" id="gsc-emerging-threshold" class="w-full p-2 rounded input-field" value="50">
-                    </div>
-                    <div>
-                        <label for="gsc-emerging-min-impressions" class="block text-sm font-medium mb-1">'Emerging' Min Impressions</label>
-                        <input type="number" id="gsc-emerging-min-impressions" class="w-full p-2 rounded input-field" value="100">
-                    </div>
-                    <div>
-                        <label for="gsc-untapped-min-impressions" class="block text-sm font-medium mb-1">'Untapped' Min Impressions</label>
-                        <input type="number" id="gsc-untapped-min-impressions" class="w-full p-2 rounded input-field" value="500">
-                    </div>
-                    <div>
-                        <label for="gsc-untapped-max-ctr" class="block text-sm font-medium mb-1">'Untapped' Max CTR (%)</label>
-                        <input type="number" id="gsc-untapped-max-ctr" class="w-full p-2 rounded input-field" value="1.5">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reddit Config -->
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-3">2. Reddit</h2>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="reddit-subreddit" class="block text-sm font-medium mb-1">Subreddit</label>
-                        <input type="text" id="reddit-subreddit" class="w-full p-2 rounded input-field" placeholder="b2bmarketing">
-                    </div>
-                    <div>
-                        <label for="reddit-sort" class="block text-sm font-medium mb-1">Sort Type</label>
-                        <select id="reddit-sort" class="w-full p-2 rounded input-field">
-                            <option>Hot</option>
-                            <option>New</option>
-                            <option>Top</option>
-                            <option>Rising</option>
-                            <option>Controversial</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Run Button -->
-            <div class="text-center pt-4">
-                <button id="run-analysis" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-200 ease-in-out">
-                    Run Predictive Analysis
-                </button>
-            </div>
-        </div>
-
-        <!-- Results Section -->
-        <div id="results-section" class="hidden mt-12">
-            <div id="loader-container" class="text-center py-10">
-                <div class="loader mx-auto"></div>
-                <p class="mt-4 text-lg text-gray-300">Performing analysis... This may take a moment.</p>
-            </div>
-            <div id="error-container" class="hidden text-center p-6 bg-red-900/20 border border-red-500 rounded-lg">
-                <h3 class="text-xl font-semibold text-red-400">Analysis Failed</h3>
-                <p id="error-message" class="mt-2 text-red-300"></p>
-            </div>
-            <div id="results-content" class="hidden space-y-6">
-                 <!-- AI Insights will be injected here -->
-            </div>
-        </div>
+<body class="bg-gray-50 text-gray-900 p-6 font-sans">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-4">🔍 Predictive SEO Tool</h1>
+    <button id="gsc-auth" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Connect Google Search Console</button>
+    <div class="mt-6">
+      <label class="block mb-2">Subreddit:</label>
+      <input type="text" id="subreddit" value="b2bmarketing" class="w-full border p-2 rounded" />
+      <label class="block mt-4 mb-2">Sort Type:</label>
+      <select id="sortType" class="w-full border p-2 rounded">
+        <option value="hot">Hot</option>
+        <option value="new">New</option>
+        <option value="top">Top</option>
+        <option value="rising">Rising</option>
+        <option value="controversial">Controversial</option>
+        <option value="gilded">Gilded</option>
+      </select>
+      <label class="block mt-4 mb-2">GSC Property URL:</label>
+      <input type="text" id="gsc-url" value="https://hallam.agency/" class="w-full border p-2 rounded" />
+      <button id="fetch-data" class="mt-6 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Run Full Analysis</button>
     </div>
+    <pre id="status" class="mt-6 bg-white p-4 border rounded h-60 overflow-auto text-sm"></pre>
+    <button id="download-xlsx" class="hidden mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">📥 Download XLSX Report</button>
+  </div>
 
-    <script>
-        // --- Hardcoded API Keys ---
-        const GEMINI_API_KEY = "AIzaSyANQlM8nra-lcWuNf2bC5tyxBexdH-flfk";
-        const GOOGLE_CLIENT_ID = "447933251845-25uu1hu0qmgf8so56o7ne52e4mo23384.apps.googleusercontent.com";
-        const GAPI_SCOPES = "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/spreadsheets";
+  <script>
+    const GOOGLE_CLIENT_ID = '447933251845-25uu1hu0qmgf8so56o7ne52e4mo23384.apps.googleusercontent.com';
+    const GEMINI_API_KEY = 'AIzaSyBNZRpbEG_cdgKra0ByDVqtCdZro-uTk_M';
+    const REDDIT_CLIENT_ID = 'FhzWxs4ciMA2Qz1HB590NQ';
+    const REDDIT_CLIENT_SECRET = 'JqB8jI7oFttg0Qd9mx3gS81Q-qTHlw';
+    const REDDIT_AUTH_URL = 'https://www.reddit.com/api/v1/access_token';
 
-        // --- Global State ---
-        let tokenClient;
-        let analysisData = {};
+    let gscAccess = null;
+    let gscService = null;
 
-        // --- DOM Element References ---
-        const authButton = document.getElementById('auth-button');
-        const authSection = document.getElementById('auth-section');
-        const configSection = document.getElementById('config-section');
-        const gscLoader = document.getElementById('gsc-loader');
-        const gscConfigInputs = document.getElementById('gsc-config-inputs');
-        const gscUrlSelect = document.getElementById('gsc-url-select');
-        const runButton = document.getElementById('run-analysis');
-        const resultsSection = document.getElementById('results-section');
-        const loaderContainer = document.getElementById('loader-container');
-        const errorContainer = document.getElementById('error-container');
-        const errorMessage = document.getElementById('error-message');
-        const resultsContent = document.getElementById('results-content');
-        
-        // --- Initialization ---
-        window.onload = function() {
-            gapi.load('client', initializeGapiClient);
-            token...
+    const log = (msg) => {
+      const el = document.getElementById('status');
+      el.textContent += `\n${msg}`;
+      el.scrollTop = el.scrollHeight;
+    };
+
+    function getDateRange(offsetDays = 0) {
+      const end = new Date(Date.now() - offsetDays * 86400000);
+      const start = new Date(end);
+      start.setDate(end.getDate() - 27);
+      return [start.toISOString().split('T')[0], end.toISOString().split('T')[0]];
+    }
+
+    async function gscQuery(siteUrl, startDate, endDate) {
+      const body = {
+        startDate,
+        endDate,
+        dimensions: ['query'],
+        rowLimit: 25000
+      };
+      const response = await gapi.client.webmasters.searchanalytics.query({ siteUrl, resource: body });
+      return response.result.rows?.map(r => ({
+        query: r.keys[0],
+        clicks: r.clicks,
+        impressions: r.impressions,
+        ctr: r.ctr,
+        position: r.position
+      })) || [];
+    }
+
+    function analyzeEmerging(current, previous, threshold = 0.5, minImpressions = 100) {
+      const prevMap = new Map(previous.map(d => [d.query, d]));
+      return current.filter(d => {
+        const prev = prevMap.get(d.query);
+        if (!prev) return false;
+        const growth = (d.impressions - prev.impressions) / (prev.impressions || 1);
+        return d.impressions >= minImpressions && growth >= threshold;
+      });
+    }
+
+    function analyzeNew(current, previous) {
+      const prevSet = new Set(previous.map(d => d.query));
+      return current.filter(d => !prevSet.has(d.query));
+    }
+
+    function analyzeUntapped(current, minImpressions = 500, maxCTR = 0.015) {
+      return current.filter(d => d.impressions >= minImpressions && d.ctr <= maxCTR);
+    }
+
+    async function authenticateReddit() {
+      const res = await fetch(REDDIT_AUTH_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`),
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+      });
+      return (await res.json()).access_token;
+    }
+
+    async function fetchReddit(subreddit, sort) {
+      const token = await authenticateReddit();
+      const res = await fetch(`https://oauth.reddit.com/r/${subreddit}/${sort}?limit=25`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'User-Agent': 'Nosy Parker'
+        }
+      });
+      const json = await res.json();
+      return json.data.children.map(p => p.data);
+    }
+
+    async function fetchGeminiInsights(emerging, newTerms, untapped, reddit) {
+      const prompt = `Analyze:
+
+GSC Emerging:\n${JSON.stringify(emerging)}\n\nGSC New:\n${JSON.stringify(newTerms)}\n\nGSC Untapped:\n${JSON.stringify(untapped)}\n\nReddit Posts:\n${JSON.stringify(reddit)}`;
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const json = await res.json();
+      return json.candidates?.[0]?.content?.parts?.[0]?.text || 'No insights returned.';
+    }
+
+    function exportXLSX(emerging, newTerms, untapped, reddit, insights) {
+      const wb = XLSX.utils.book_new();
+      const wrap = (data, sheetName) => {
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.sheet_add_aoa(ws, [[`Insights:`], [insights], []], { origin: 'A1' });
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      };
+      wrap(emerging, 'Emerging');
+      wrap(newTerms, 'New');
+      wrap(untapped, 'Untapped');
+      wrap(reddit, 'Reddit');
+      XLSX.writeFile(wb, 'predictive_seo_report.xlsx');
+    }
+
+    document.getElementById('gsc-auth').addEventListener('click', () => {
+      gapi.load('client:auth2', async () => {
+        await gapi.client.init({
+          clientId: GOOGLE_CLIENT_ID,
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/webmasters/v3/rest'],
+          scope: 'https://www.googleapis.com/auth/webmasters.readonly'
+        });
+        await gapi.auth2.getAuthInstance().signIn();
+        log('✅ GSC Auth complete');
+      });
+    });
+
+    document.getElementById('fetch-data').addEventListener('click', async () => {
+      const url = document.getElementById('gsc-url').value;
+      const subreddit = document.getElementById('subreddit').value;
+      const sort = document.getElementById('sortType').value;
+
+      const [currStart, currEnd] = getDateRange(1);
+      const [prevStart, prevEnd] = getDateRange(29);
+
+      log(`📊 Fetching GSC data: ${currStart} → ${currEnd}`);
+      const current = await gscQuery(url, currStart, currEnd);
+      log(`📊 Fetching previous GSC data: ${prevStart} → ${prevEnd}`);
+      const previous = await gscQuery(url, prevStart, prevEnd);
+
+      const emerging = analyzeEmerging(current, previous);
+      const newTerms = analyzeNew(current, previous);
+      const untapped = analyzeUntapped(current);
+
+      log(`📥 Fetching Reddit data from r/${subreddit} sorted by ${sort}`);
+      const reddit = await fetchReddit(subreddit, sort);
+
+      log(`🤖 Sending data to Gemini API`);
+      const insights = await fetchGeminiInsights(emerging, newTerms, untapped, reddit);
+
+      exportXLSX(emerging, newTerms, untapped, reddit, insights);
+      document.getElementById('download-xlsx').classList.remove('hidden');
+      log(`✅ XLSX download ready.`);
+    });
+  </script>
+</body>
+</html>
